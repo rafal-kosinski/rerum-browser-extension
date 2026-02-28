@@ -83,15 +83,20 @@ export function useAuth(): UseAuthResult {
     }
   }, []);
 
-  // Initial auth check — shows the loading spinner once on mount.
+  // Initial auth check on mount.
+  // When cached auth exists, verify silently (no spinner) to avoid a flicker.
+  // When no cache, show the loading spinner while waiting.
   useEffect(() => {
+    const hasCachedState = cached != null;
     const runInitialCheck = async () => {
-      setIsLoading(true);
+      if (!hasCachedState) {
+        setIsLoading(true);
+      }
       await checkAuth({ showLoading: false });
       setIsLoading(false);
     };
     void runInitialCheck();
-  // checkAuth is stable (no deps), so this only runs once on mount.
+  // checkAuth is stable (no deps), cached is read once at hook init.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
