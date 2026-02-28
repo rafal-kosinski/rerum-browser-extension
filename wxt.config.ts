@@ -10,8 +10,8 @@ try {
   const envPath = resolve(import.meta.dirname ?? '.', '.env');
   for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
     const match = line.match(/^\s*([^#\s=]+)\s*=\s*(.*?)\s*$/);
-    if (match && !(match[1] in process.env)) {
-      process.env[match[1]] = match[2];
+    if (match && match[1] && !(match[1] in process.env)) {
+      process.env[match[1]] = match[2] ?? '';
     }
   }
 } catch { /* .env not found — use defaults */ }

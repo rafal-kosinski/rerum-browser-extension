@@ -1,4 +1,4 @@
-import type { AccountType, EstimateTabApi } from '../shared-types/estimate';
+import type { EstimateTabApi, UserInfo } from '../shared-types/estimate';
 
 // ---------------------------------------------------------------------------
 // Session Storage — survives SW restarts but cleared on browser close
@@ -8,7 +8,8 @@ import type { AccountType, EstimateTabApi } from '../shared-types/estimate';
 /** Auth state stored in session storage. */
 export interface StoredAuthState {
   isAuthenticated: boolean;
-  accountType?: AccountType;
+  accountType?: string;
+  user?: UserInfo | null;
 }
 
 /** Cached document structure (tab metadata only, no row data). */

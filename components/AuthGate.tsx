@@ -128,7 +128,7 @@ function AuthGate({ children, isAuthenticated, isLoading, sessionExpired, onRefr
   // --- Not authenticated state ----------------------------------------------
   if (!isAuthenticated) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 56px)', width: '100%', gap: 2, px: 3, textAlign: 'center' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 56px)', width: '100%', gap: 2, px: 3, pb: 3, textAlign: 'center' }}>
         <Box
           component="img"
           src="/rerum-logo.svg"

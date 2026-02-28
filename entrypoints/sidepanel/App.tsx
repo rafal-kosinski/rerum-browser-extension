@@ -59,7 +59,7 @@ function App() {
   // --- Page data extracted from the active tab ------------------------------
   const [pageData, setPageData] = useState<PageData | null>(null);
   const [activeTabId, setActiveTabId] = useState<number | null>(null);
-  const [confidence, setConfidence] = useState<ProductConfidence>('low');
+  const [, setConfidence] = useState<ProductConfidence>('low');
   const [pageDataLoading, setPageDataLoading] = useState(false);
 
   // --- Extraction -----------------------------------------------------------

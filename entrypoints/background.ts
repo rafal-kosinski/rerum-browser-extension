@@ -3,15 +3,13 @@ import type {
   EstimateDocumentDto,
   EstimateRecordApi,
   ExtractedProductData,
-  PageData,
   PagedEstimateDocumentsDto,
-  ProductHints,
   UsageDto,
   UserDto,
 } from '../shared-types/estimate';
 import type { ExtensionMessage, ExtensionResponse } from '../lib/messaging';
 import { extractPageData, extractPageContent } from './content/extraction';
-import { sanitizePageData, sanitizeHints, stripHtml } from '../lib/sanitize';
+import { sanitizePageData } from '../lib/sanitize';
 import { cacheDocumentTabs, invalidateDocumentCache } from '../lib/storage';
 
 // ---------------------------------------------------------------------------
@@ -257,41 +255,6 @@ async function apiPost<T>(path: string, body: unknown, params?: Record<string, s
   return response.json() as Promise<T>;
 }
 
-/**
- * Perform a PUT request against the Rerum API.
- * Automatically attaches the XSRF-TOKEN header.
- */
-async function apiPut<T>(path: string, body: unknown): Promise<T> {
-  const csrfToken = await ensureCsrfToken();
-  const sessionToken = await getSessionToken();
-  const url = new URL(`${RERUM_API_URL}${path}`);
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    'X-XSRF-TOKEN': csrfToken,
-    'X-Rerum-Client': RERUM_CLIENT_HEADER,
-    'Accept-Language': resolveLocale(),
-  };
-  if (sessionToken) {
-    headers['X-Auth-Token'] = sessionToken;
-  }
-
-  const response = await fetch(url.toString(), {
-    method: 'PUT',
-    credentials: 'include',
-    headers,
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ error: response.statusText })) as { error?: string; errorCode?: string };
-    throw new ApiError(response.status, errorBody.error ?? response.statusText, errorBody.errorCode);
-  }
-
-  return response.json() as Promise<T>;
-}
-
 // ---------------------------------------------------------------------------
 // Sanitization helpers now imported from ../lib/sanitize
 // ---------------------------------------------------------------------------
@@ -360,21 +323,29 @@ async function handleCheckAuth(): Promise<ExtensionResponse> {
   try {
     const user = await apiGet<UserDto>('/auth/me');
     console.log('[rerum-ext] CHECK_AUTH: authenticated as', user.email);
+    const userInfo = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      accountType: user.accountType,
+    };
+    // Cache auth state so the popup/sidepanel can skip the loading spinner
+    browser.storage.session
+      .set({ authState: { isAuthenticated: true, user: userInfo, accountType: user.accountType } })
+      .catch(() => {});
     return {
       type: 'AUTH_RESULT',
       isAuthenticated: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        picture: user.picture,
-        accountType: user.accountType,
-      },
+      user: userInfo,
     };
   } catch (err) {
     if (err instanceof ApiError) {
       console.warn('[rerum-ext] CHECK_AUTH: failed with status', err.status, err.message);
       if (err.status === 401) {
+        browser.storage.session
+          .set({ authState: { isAuthenticated: false, user: null } })
+          .catch(() => {});
         return { type: 'AUTH_RESULT', isAuthenticated: false };
       }
     }
@@ -599,16 +570,21 @@ export default defineBackground(() => {
   //
   // Fall back to setPanelBehavior for browsers that support sidePanel but not
   // sidePanel.open (e.g. older Chrome builds / Firefox sidebar).
-  if (browser.sidePanel?.open) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sidePanel API not in WXT's browser types
+  const sidePanel = (browser as any).sidePanel as
+    | { open?: (opts: { windowId: number }) => Promise<void>; setPanelBehavior?: (opts: { openPanelOnActionClick: boolean }) => Promise<void> }
+    | undefined;
+
+  if (sidePanel?.open) {
     browser.action.onClicked.addListener((tab) => {
       if (tab.windowId != null) {
-        browser.sidePanel.open({ windowId: tab.windowId }).catch((err: unknown) => {
+        sidePanel.open!({ windowId: tab.windowId }).catch((err: unknown) => {
           console.warn('[rerum-ext] Failed to open side panel:', err);
         });
       }
     });
-  } else if (browser.sidePanel?.setPanelBehavior) {
-    browser.sidePanel
+  } else if (sidePanel?.setPanelBehavior) {
+    sidePanel
       .setPanelBehavior({ openPanelOnActionClick: true })
       .catch((err: unknown) => {
         console.warn('[rerum-ext] Failed to set sidePanel behavior:', err);
@@ -621,14 +597,15 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener(
     (
-      message: ExtensionMessage,
-      _sender: browser.Runtime.MessageSender,
+      message: unknown,
+      _sender: unknown,
       sendResponse: (response: ExtensionResponse) => void,
     ): true => {
+      const msg = message as ExtensionMessage;
       // Ignore internal broadcast messages (e.g. AUTH_STATE_CHANGED) that are
       // not part of the request/response protocol.  They are handled by
       // dedicated listeners in the Side Panel.
-      const knownType = (message as { type?: string })?.type;
+      const knownType = (msg as { type?: string })?.type;
       if (knownType === 'AUTH_STATE_CHANGED') {
         sendResponse({ type: 'LOGOUT_RESULT' }); // no-op ack
         return true;
@@ -639,42 +616,42 @@ export default defineBackground(() => {
         try {
           let response: ExtensionResponse;
 
-          switch (message.type) {
+          switch (msg.type) {
             case 'CHECK_AUTH':
               response = await handleCheckAuth();
               break;
 
             case 'FETCH_DOCUMENTS':
               response = await handleFetchDocuments(
-                message.page,
-                message.size,
-                message.search,
-                message.sort,
+                msg.page,
+                msg.size,
+                msg.search,
+                msg.sort,
               );
               break;
 
             case 'FETCH_DOCUMENT':
-              response = await handleFetchDocument(message.documentUuid);
+              response = await handleFetchDocument(msg.documentUuid);
               break;
 
             case 'EXTRACT_PRODUCT':
               response = await handleExtractProduct(
-                message.productUrl,
-                message.tabId,
-                message.documentUuid,
+                msg.productUrl,
+                msg.tabId,
+                msg.documentUuid,
               );
               break;
 
             case 'ADD_ROW_TO_DOCUMENT':
               response = await handleAddRowToDocument(
-                message.documentUuid,
-                message.tabId,
-                message.row,
+                msg.documentUuid,
+                msg.tabId,
+                msg.row,
               );
               break;
 
             case 'EXTRACT_PAGE_DATA':
-              response = await handleExtractPageData(message.tabId);
+              response = await handleExtractPageData(msg.tabId);
               break;
 
             case 'FETCH_USAGE':
@@ -690,7 +667,7 @@ export default defineBackground(() => {
               break;
 
             default: {
-              const exhaustiveCheck: never = message;
+              const exhaustiveCheck: never = msg;
               response = {
                 type: 'ERROR',
                 status: 0,

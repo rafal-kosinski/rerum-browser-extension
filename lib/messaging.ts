@@ -4,7 +4,6 @@ import type {
   EstimateRecordApi,
   ExtractedProductData,
   PageData,
-  ProductHints,
   UsageDto,
   UserDto,
 } from '../shared-types/estimate';

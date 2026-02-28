@@ -173,19 +173,6 @@ const FILE_MAPPINGS = [
     description: 'Estimate entity types',
     postProcess: patchEstimateTypes,
   },
-  {
-    source: resolve(
-      FRONTEND_ROOT,
-      'src',
-      'shared',
-      'lib',
-      'mappers',
-      'estimateMapper.ts'
-    ),
-    destination: resolve(SHARED_TYPES_DIR, 'mappers.ts'),
-    description: 'Estimate mappers',
-    postProcess: null,
-  },
 ];
 
 const HEADER = `/**

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { sendMessage } from '../lib/messaging';
+import { getCachedAuth } from '../lib/authCache';
 import type { UserInfo } from '../shared-types/estimate';
 
 /** Auth state returned by the `useAuth` hook. */
@@ -32,9 +33,12 @@ export interface UseAuthResult {
  * without toggling `isLoading`, eliminating the periodic spinner flash.
  */
 export function useAuth(): UseAuthResult {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Pre-loaded from session storage before React mounted (see authCache.ts).
+  // If cached state exists, skip the loading spinner entirely.
+  const cached = getCachedAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(cached?.isAuthenticated ?? false);
+  const [user, setUser] = useState<UserInfo | null>(cached?.user ?? null);
+  const [isLoading, setIsLoading] = useState(cached == null);
   const [error, setError] = useState<string | null>(null);
 
   const checkAuth = useCallback(async (options?: { showLoading?: boolean }) => {
