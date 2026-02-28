@@ -61,5 +61,8 @@
   "onboarding.step3Desc": "Select one of your estimate documents and a tab, then click \"Add to Estimate\" to save the product.",
   "onboarding.next": "Next",
   "onboarding.gotIt": "Got it!",
-  "usage.remaining": "{{remaining}}/{{limit}} AI extractions remaining"
+  "usage.remaining": "{{remaining}}/{{limit}} AI extractions remaining",
+  "column.aiColumns": "AI columns",
+  "column.moreColumns": "+{{count}} more",
+  "action.selectDocumentFirst": "Select a document to extract data"
 }

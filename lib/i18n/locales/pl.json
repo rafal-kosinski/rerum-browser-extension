@@ -61,5 +61,8 @@
   "onboarding.step3Desc": "Wybierz jeden z dokumentów kosztorysowych i zakładkę, a następnie kliknij \"Dodaj do kosztorysu\", aby zapisać produkt.",
   "onboarding.next": "Dalej",
   "onboarding.gotIt": "Rozumiem!",
-  "usage.remaining": "{{remaining}}/{{limit}} ekstrakcji AI pozostało"
+  "usage.remaining": "{{remaining}}/{{limit}} ekstrakcji AI pozostało",
+  "column.aiColumns": "Kolumny AI",
+  "column.moreColumns": "+{{count}} więcej",
+  "action.selectDocumentFirst": "Wybierz dokument, aby wyodrębnić dane"
 }
