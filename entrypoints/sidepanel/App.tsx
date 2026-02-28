@@ -512,7 +512,7 @@ function App() {
       // If we're in preview state and the document changed, we need to
       // re-extract because the new document may have different AI columns.
       if (appStateRef.current === 'preview' && uuid) {
-        setAppState('idle');
+        setAppState('extracting');
         setPendingReExtract(true);
       }
     },
@@ -590,7 +590,7 @@ function App() {
     return Object.keys(labels).length > 0 ? labels : undefined;
   }, [selectedDocument]);
 
-  const aiColumns = useMemo(() => {
+  const columnDefinitions = useMemo(() => {
     return selectedDocument?.documentContent.column_definitions ?? null;
   }, [selectedDocument]);
 
@@ -662,7 +662,7 @@ function App() {
                 disabled={false}
               />
 
-              <AiColumnChips columnDefinitions={aiColumns} />
+              <AiColumnChips columnDefinitions={columnDefinitions} />
 
               <Button
                 variant="contained"
