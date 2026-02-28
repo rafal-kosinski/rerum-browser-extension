@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Chip, Link, Typography } from '@mui/material';
 import { AutoAwesome as AutoAwesomeIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,11 @@ function AiColumnChips({ columnDefinitions }: AiColumnChipsProps) {
     return columnDefinitions
       .filter((col) => col.ai_enabled)
       .sort((a, b) => a.display_order - b.display_order);
+  }, [columnDefinitions]);
+
+  // Reset expanded state when switching documents.
+  useEffect(() => {
+    setExpanded(false);
   }, [columnDefinitions]);
 
   // No column definitions loaded yet (no document selected)

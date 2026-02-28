@@ -494,6 +494,14 @@ function App() {
       setSelectedTabId(null);
       setSelectedDocument(null);
 
+      // If we're in preview state and the document changed, we need to
+      // re-extract because the new document may have different AI columns.
+      const wasInPreview = appStateRef.current === 'preview' && !!uuid;
+      if (wasInPreview) {
+        setAppState('extracting');
+        setPendingReExtract(true);
+      }
+
       if (uuid) {
         sendMessage({ type: 'FETCH_DOCUMENT', documentUuid: uuid })
           .then((res) => {
@@ -506,14 +514,14 @@ function App() {
               }
             }
           })
-          .catch(() => {});
-      }
-
-      // If we're in preview state and the document changed, we need to
-      // re-extract because the new document may have different AI columns.
-      if (appStateRef.current === 'preview' && uuid) {
-        setAppState('extracting');
-        setPendingReExtract(true);
+          .catch(() => {
+            // If fetch fails during a re-extract, abort the pending
+            // extraction and return to idle to avoid getting stuck.
+            if (wasInPreview) {
+              setPendingReExtract(false);
+              setAppState('idle');
+            }
+          });
       }
     },
     [],

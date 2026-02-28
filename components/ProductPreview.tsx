@@ -10,7 +10,10 @@ import type { ExtractedProductData, ColumnDefinitionApi } from '../shared-types/
 /** System column keys that are handled outside this form. */
 const EXCLUDED_SYSTEM_COLUMNS = new Set(['productImageUrl', 'productUrl']);
 
-/** Maps system column keys to their corresponding field on ExtractedProductData. */
+/**
+ * Maps system column keys to their corresponding field on ExtractedProductData.
+ * Assumes system column_key values match ExtractedProductData field names (camelCase).
+ */
 const SYSTEM_FIELD_MAP: Record<string, keyof ExtractedProductData | 'quantity' | 'comment'> = {
   productName: 'productName',
   manufacturer: 'manufacturer',
@@ -127,7 +130,7 @@ function ProductPreview({ data, onChange, columnDefinitions, disabled = false }:
             fullWidth
             disabled={disabled}
             type={col.column_key === 'quantity' ? 'number' : 'text'}
-            inputProps={col.column_key === 'quantity' ? { min: 1 } : undefined}
+            slotProps={col.column_key === 'quantity' ? { htmlInput: { min: 1 } } : undefined}
             multiline={col.column_key === 'comment'}
             minRows={col.column_key === 'comment' ? 2 : undefined}
             maxRows={col.column_key === 'comment' ? 4 : undefined}
@@ -179,7 +182,7 @@ function ProductPreview({ data, onChange, columnDefinitions, disabled = false }:
         onChange={(e) => handleQuantityChange(e.target.value)}
         size="small"
         fullWidth
-        inputProps={{ min: 1 }}
+        slotProps={{ htmlInput: { min: 1 } }}
         disabled={disabled}
       />
     </Box>
