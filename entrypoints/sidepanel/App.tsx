@@ -24,6 +24,7 @@ import ImageSelector from '../../components/ImageSelector';
 import DocumentPicker from '../../components/DocumentPicker';
 import SuccessConfirmation from '../../components/SuccessConfirmation';
 import OnboardingFlow from '../../components/OnboardingFlow';
+import AiColumnChips from '../../components/AiColumnChips';
 
 // ---------------------------------------------------------------------------
 // UI State machine
@@ -571,6 +572,10 @@ function App() {
     return Object.keys(labels).length > 0 ? labels : undefined;
   }, [selectedDocument]);
 
+  const aiColumns = useMemo(() => {
+    return selectedDocument?.documentContent.column_definitions ?? null;
+  }, [selectedDocument]);
+
   // =========================================================================
   // Render
   // =========================================================================
@@ -612,7 +617,7 @@ function App() {
             </Box>
           )}
 
-          {/* Idle state: page info + extract button */}
+          {/* Idle state: page info + document picker + extract button */}
           {appState === 'idle' && documents.length > 0 && (
             <>
               {pageData && (
@@ -629,12 +634,25 @@ function App() {
                 </Box>
               )}
 
+              <DocumentPicker
+                documents={documents}
+                selectedDocumentUuid={selectedDocumentUuid}
+                selectedTabId={selectedTabId}
+                selectedDocument={selectedDocument}
+                onDocumentChange={handleDocumentChange}
+                onTabChange={handleTabChange}
+                disabled={false}
+              />
+
+              <AiColumnChips columnDefinitions={aiColumns} />
+
               <Button
                 variant="contained"
                 fullWidth
                 size="large"
                 onClick={handleExtract}
-                disabled={!pageData?.url || pageDataLoading}
+                disabled={!pageData?.url || pageDataLoading || !selectedDocumentUuid}
+                title={!selectedDocumentUuid ? t('action.selectDocumentFirst') : undefined}
                 sx={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
@@ -663,16 +681,6 @@ function App() {
                   onSelect={setSelectedImage}
                 />
               )}
-
-              <DocumentPicker
-                documents={documents}
-                selectedDocumentUuid={selectedDocumentUuid}
-                selectedTabId={selectedTabId}
-                selectedDocument={selectedDocument}
-                onDocumentChange={handleDocumentChange}
-                onTabChange={handleTabChange}
-                disabled={false}
-              />
 
               <Button
                 variant="contained"
