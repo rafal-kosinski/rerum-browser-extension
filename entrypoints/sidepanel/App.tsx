@@ -80,6 +80,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [pendingReExtract, setPendingReExtract] = useState(false);
 
   // --- Success info ---------------------------------------------------------
   const [successInfo, setSuccessInfo] = useState<{
@@ -507,6 +508,13 @@ function App() {
           })
           .catch(() => {});
       }
+
+      // If we're in preview state and the document changed, we need to
+      // re-extract because the new document may have different AI columns.
+      if (appStateRef.current === 'preview' && uuid) {
+        setAppState('idle');
+        setPendingReExtract(true);
+      }
     },
     [],
   );
@@ -556,6 +564,16 @@ function App() {
       });
     }
   }, [isAuthenticated, documents, hasRestoredSelection]);
+
+  // Re-extract when the user switches documents from preview state.
+  // Uses pendingReExtract flag because handleDocumentChange can't call
+  // handleExtract directly (selectedDocumentUuid update is async).
+  useEffect(() => {
+    if (pendingReExtract && selectedDocumentUuid && selectedDocument && pageData?.url) {
+      setPendingReExtract(false);
+      void handleExtract();
+    }
+  }, [pendingReExtract, selectedDocumentUuid, selectedDocument, pageData, handleExtract]);
 
   // =========================================================================
   // Custom field labels from document column definitions
