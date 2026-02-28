@@ -21,7 +21,8 @@ export type ExtensionMessage =
   | { type: 'ADD_ROW_TO_DOCUMENT'; documentUuid: string; tabId: string; row: EstimateRecordApi }
   | { type: 'EXTRACT_PAGE_DATA'; tabId: number }
   | { type: 'FETCH_USAGE' }
-  | { type: 'GET_ACTIVE_TAB' };
+  | { type: 'GET_ACTIVE_TAB' }
+  | { type: 'LOGOUT' };
 
 // ---------------------------------------------------------------------------
 // Responses: Background Service Worker --> Side Panel
@@ -37,6 +38,7 @@ export type ExtensionResponse =
   | { type: 'PAGE_DATA_RESULT'; pageData: PageData }
   | { type: 'USAGE_RESULT'; usage: UsageDto }
   | { type: 'ACTIVE_TAB_RESULT'; tabId: number | null; url: string | null }
+  | { type: 'LOGOUT_RESULT' }
   | { type: 'ERROR'; status: number; error: string; errorCode?: string };
 
 // ---------------------------------------------------------------------------

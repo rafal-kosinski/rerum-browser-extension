@@ -33,7 +33,32 @@ class ApiError extends Error {
 // Locale resolution
 // ---------------------------------------------------------------------------
 
+/** Cached language preference from browser.storage.local. */
+let cachedLanguage: string | null = null;
+
+/** Load stored language preference into the module-level cache. */
+async function loadLanguagePreference(): Promise<void> {
+  try {
+    const result = await browser.storage.local.get('language');
+    cachedLanguage = (result.language as string) ?? null;
+  } catch {
+    cachedLanguage = null;
+  }
+}
+
+// Listen for storage changes to keep the cache up-to-date.
+if (typeof browser !== 'undefined' && browser.storage?.onChanged) {
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.language) {
+      cachedLanguage = (changes.language.newValue as string) ?? null;
+    }
+  });
+}
+
 function resolveLocale(): string {
+  if (cachedLanguage) {
+    return cachedLanguage;
+  }
   try {
     if (typeof navigator !== 'undefined' && navigator.language) {
       return navigator.language;
@@ -309,6 +334,28 @@ function toExtractedProductData(extraction: Record<string, unknown>): ExtractedP
 // Message handlers
 // ---------------------------------------------------------------------------
 
+async function handleLogout(): Promise<ExtensionResponse> {
+  // 1. Call the server-side logout endpoint to invalidate the session
+  try {
+    await apiPost<void>('/auth/logout', {});
+  } catch {
+    // Best-effort — even if the server call fails, clear local state
+  }
+
+  // 2. Remove session and CSRF cookies
+  await browser.cookies.remove({ url: RERUM_BASE_URL, name: 'SESSION' }).catch(() => {});
+  await browser.cookies.remove({ url: RERUM_BASE_URL, name: 'XSRF-TOKEN' }).catch(() => {});
+
+  // 3. Broadcast auth state change so the side panel resets
+  browser.runtime
+    .sendMessage({ type: 'AUTH_STATE_CHANGED' as string })
+    .catch(() => {
+      // No listener (Side Panel not open) — expected, ignore
+    });
+
+  return { type: 'LOGOUT_RESULT' };
+}
+
 async function handleCheckAuth(): Promise<ExtensionResponse> {
   try {
     const user = await apiGet<UserDto>('/auth/me');
@@ -578,6 +625,15 @@ export default defineBackground(() => {
       _sender: browser.Runtime.MessageSender,
       sendResponse: (response: ExtensionResponse) => void,
     ): true => {
+      // Ignore internal broadcast messages (e.g. AUTH_STATE_CHANGED) that are
+      // not part of the request/response protocol.  They are handled by
+      // dedicated listeners in the Side Panel.
+      const knownType = (message as { type?: string })?.type;
+      if (knownType === 'AUTH_STATE_CHANGED') {
+        sendResponse({ type: 'LOGOUT_RESULT' }); // no-op ack
+        return true;
+      }
+
       // All handlers are async; return true to keep the message channel open.
       (async () => {
         try {
@@ -627,6 +683,10 @@ export default defineBackground(() => {
 
             case 'GET_ACTIVE_TAB':
               response = await handleGetActiveTab();
+              break;
+
+            case 'LOGOUT':
+              response = await handleLogout();
               break;
 
             default: {
@@ -800,6 +860,9 @@ export default defineBackground(() => {
   ensureCsrfToken().catch((err: unknown) => {
     console.warn('[rerum-ext] CSRF pre-fetch on init failed (will retry on first request):', err);
   });
+
+  // Load stored language preference into the in-memory cache.
+  loadLanguagePreference().catch(() => {});
 
   console.log('[rerum-ext] Background service worker initialized');
 });

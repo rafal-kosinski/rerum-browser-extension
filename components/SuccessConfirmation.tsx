@@ -1,4 +1,5 @@
 import { Box, Alert, Button, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { RERUM_APP_URL } from '../lib/constants';
 
 interface SuccessConfirmationProps {
@@ -28,27 +29,28 @@ function SuccessConfirmation({
   documentUuid,
   onAddAnother,
 }: SuccessConfirmationProps) {
+  const { t } = useTranslation();
   const handleOpenInRerum = () => {
-    browser.tabs.create({ url: `${RERUM_APP_URL}/estimates/${documentUuid}` });
+    browser.tabs.create({ url: `${RERUM_APP_URL}/estimate/${documentUuid}` });
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Alert severity="success">
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          Product added successfully
+          {t('product.addedSuccess')}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          "{productName}" added to {documentName} &rarr; {tabName}
+          {t('product.addedDetail', { productName, documentName, tabName })}
         </Typography>
       </Alert>
 
       <Box sx={{ display: 'flex', gap: 1 }}>
         <Button variant="outlined" size="small" onClick={handleOpenInRerum} sx={{ flex: 1 }}>
-          Open in Rerum
+          {t('product.openInRerum')}
         </Button>
         <Button variant="contained" size="small" onClick={onAddAnother} sx={{ flex: 1 }}>
-          Add Another
+          {t('product.addAnother')}
         </Button>
       </Box>
     </Box>

@@ -2,6 +2,7 @@ import { Component } from 'react';
 import type { ReactNode } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import i18n from '../lib/i18n';
 
 interface Props {
   children: ReactNode;
@@ -55,10 +56,10 @@ class ErrorBoundary extends Component<Props, State> {
         >
           <ErrorOutlineIcon sx={{ fontSize: 48, color: 'error.main' }} />
           <Typography variant="h6" color="text.primary">
-            Something went wrong
+            {i18n.t('error.boundary')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            An unexpected error occurred in the Rerum extension.
+            {i18n.t('error.boundaryDetail')}
           </Typography>
           {this.state.error && (
             <Typography
@@ -79,7 +80,7 @@ class ErrorBoundary extends Component<Props, State> {
             </Typography>
           )}
           <Button variant="contained" onClick={this.handleReload} size="small">
-            Reload Extension
+            {i18n.t('error.reload')}
           </Button>
         </Box>
       );

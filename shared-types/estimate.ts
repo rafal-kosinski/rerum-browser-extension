@@ -7,7 +7,7 @@
  *   npm run sync-types
  *
  * Source: rerum-frontend/src/entities/estimate/types.ts
- * Synced: 2026-02-24T22:21:21.333Z
+ * Synced: 2026-02-28T00:16:26.380Z
  */
 
 // API Types (snake_case - from backend)

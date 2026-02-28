@@ -6,6 +6,7 @@ import {
   ImageListItem,
   Button,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 interface ImageSelectorProps {
   /** Array of image URLs extracted from the page. */
@@ -27,6 +28,7 @@ const MAX_IMAGES = 20;
  * A "No image" button allows deselecting the current image.
  */
 function ImageSelector({ images, selectedImage, onSelect }: ImageSelectorProps) {
+  const { t } = useTranslation();
   const [hiddenImages, setHiddenImages] = useState<Set<string>>(new Set());
 
   const handleImageError = useCallback((src: string) => {
@@ -41,7 +43,7 @@ function ImageSelector({ images, selectedImage, onSelect }: ImageSelectorProps) 
     return (
       <Box sx={{ py: 1 }}>
         <Typography variant="body2" color="text.secondary">
-          No images found on this page.
+          {t('image.noImages')}
         </Typography>
       </Box>
     );
@@ -51,7 +53,7 @@ function ImageSelector({ images, selectedImage, onSelect }: ImageSelectorProps) 
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="subtitle2" color="text.secondary">
-          Select Image
+          {t('image.select')}
         </Typography>
         {selectedImage && (
           <Button
@@ -60,7 +62,7 @@ function ImageSelector({ images, selectedImage, onSelect }: ImageSelectorProps) 
             onClick={() => onSelect(null)}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            No image
+            {t('image.noImage')}
           </Button>
         )}
       </Box>

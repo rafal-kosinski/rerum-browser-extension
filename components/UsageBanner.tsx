@@ -1,4 +1,5 @@
 import { Box, Typography, LinearProgress } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 interface UsageBannerProps {
   /** Number of AI extractions used in the current billing period. */
@@ -15,6 +16,7 @@ interface UsageBannerProps {
  * or error (at limit) as usage increases.
  */
 function UsageBanner({ used, limit }: UsageBannerProps) {
+  const { t } = useTranslation();
   const percentage = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const remaining = Math.max(limit - used, 0);
   const isWarning = percentage > 80;
@@ -36,7 +38,7 @@ function UsageBanner({ used, limit }: UsageBannerProps) {
       }}
     >
       <Typography variant="caption" color="text.secondary">
-        {remaining}/{limit} AI extractions remaining
+        {t('usage.remaining', { remaining, limit })}
       </Typography>
       <LinearProgress
         variant="determinate"

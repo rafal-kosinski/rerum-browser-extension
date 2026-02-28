@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { theme } from '../../lib/theme';
+import '../../lib/i18n';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import App from './App';
 

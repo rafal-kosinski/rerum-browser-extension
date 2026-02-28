@@ -1,5 +1,6 @@
 import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { RERUM_APP_URL } from '../lib/constants';
 import type { UserDto } from '../shared-types/estimate';
 
@@ -28,6 +29,7 @@ interface AuthGateProps {
  * - If authenticated: renders children.
  */
 function AuthGate({ children, isAuthenticated, isLoading, sessionExpired, onRefresh }: AuthGateProps) {
+  const { t } = useTranslation();
   const popupWindowId = useRef<number | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
 
@@ -114,10 +116,10 @@ function AuthGate({ children, isAuthenticated, isLoading, sessionExpired, onRefr
   // --- Loading state --------------------------------------------------------
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 56px)', width: '100%', gap: 2 }}>
         <CircularProgress size={40} />
         <Typography variant="body2" color="text.secondary">
-          Checking authentication...
+          {t('auth.checking')}
         </Typography>
       </Box>
     );
@@ -126,24 +128,18 @@ function AuthGate({ children, isAuthenticated, isLoading, sessionExpired, onRefr
   // --- Not authenticated state ----------------------------------------------
   if (!isAuthenticated) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 2, px: 3, textAlign: 'center' }}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          Rerum
-        </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 56px)', width: '100%', gap: 2, px: 3, textAlign: 'center' }}>
+        <Box
+          component="img"
+          src="/rerum-logo.svg"
+          alt="Rerum"
+          sx={{ height: 40 }}
+        />
 
         <Typography variant="body1" color="text.secondary">
           {sessionExpired
-            ? 'Your session expired. Please log in again to continue.'
-            : 'Sign in to start capturing products'}
+            ? t('auth.sessionExpired')
+            : t('auth.signInPrompt')}
         </Typography>
 
         <Button
@@ -153,7 +149,7 @@ function AuthGate({ children, isAuthenticated, isLoading, sessionExpired, onRefr
           disabled={popupOpen}
           sx={{ mt: 1, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
         >
-          {popupOpen ? 'Sign-in window open…' : 'Sign in to Rerum'}
+          {popupOpen ? t('auth.signInOpen') : t('auth.signInButton')}
         </Button>
       </Box>
     );

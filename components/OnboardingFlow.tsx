@@ -8,27 +8,18 @@ import {
   StepLabel,
   StepContent,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingFlowProps {
   /** Called when the user dismisses the onboarding tutorial. */
   onComplete: () => void;
 }
 
-/** Onboarding step definitions. */
-const STEPS = [
-  {
-    label: 'Browse a product page',
-    description: 'Navigate to any product page on the web (e.g., Amazon, Wayfair, or any online store).',
-  },
-  {
-    label: 'Click Extract to analyze',
-    description: 'Click the "Extract Product Data" button and our AI will identify the product name, price, manufacturer, and more.',
-  },
-  {
-    label: 'Choose a document and add',
-    description: 'Select one of your estimate documents and a tab, then click "Add to Estimate" to save the product.',
-  },
-];
+const STEP_KEYS = [
+  { titleKey: 'onboarding.step1Title', descKey: 'onboarding.step1Desc' },
+  { titleKey: 'onboarding.step2Title', descKey: 'onboarding.step2Desc' },
+  { titleKey: 'onboarding.step3Title', descKey: 'onboarding.step3Desc' },
+] as const;
 
 /**
  * First-time user onboarding tutorial.
@@ -38,10 +29,11 @@ const STEPS = [
  * component.
  */
 function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
 
   const handleNext = () => {
-    if (activeStep < STEPS.length - 1) {
+    if (activeStep < STEP_KEYS.length - 1) {
       setActiveStep((prev) => prev + 1);
     } else {
       onComplete();
@@ -59,28 +51,28 @@ function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       }}
     >
       <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-        Welcome to Rerum Estimator
+        {t('onboarding.welcome')}
       </Typography>
 
       <Stepper activeStep={activeStep} orientation="vertical">
-        {STEPS.map((step, index) => (
-          <Step key={step.label}>
+        {STEP_KEYS.map((step, index) => (
+          <Step key={step.titleKey}>
             <StepLabel>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {step.label}
+                {t(step.titleKey)}
               </Typography>
             </StepLabel>
             <StepContent>
               <Typography variant="caption" color="text.secondary">
-                {step.description}
+                {t(step.descKey)}
               </Typography>
               <Box sx={{ mt: 1 }}>
                 <Button
-                  variant={index === STEPS.length - 1 ? 'contained' : 'text'}
+                  variant={index === STEP_KEYS.length - 1 ? 'contained' : 'text'}
                   size="small"
                   onClick={handleNext}
                 >
-                  {index === STEPS.length - 1 ? 'Got it!' : 'Next'}
+                  {index === STEP_KEYS.length - 1 ? t('onboarding.gotIt') : t('onboarding.next')}
                 </Button>
               </Box>
             </StepContent>

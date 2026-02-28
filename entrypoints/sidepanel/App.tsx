@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Box, Button, Typography, Alert } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { browser } from 'wxt/browser';
 import { useAuth } from '../../hooks/useAuth';
 import { useDocuments } from '../../hooks/useDocuments';
@@ -16,7 +17,7 @@ import type {
 import Header from '../../components/Header';
 import AuthGate from '../../components/AuthGate';
 import UsageBanner from '../../components/UsageBanner';
-import NonProductPageHint from '../../components/NonProductPageHint';
+
 import ExtractionProgress from '../../components/ExtractionProgress';
 import ProductPreview from '../../components/ProductPreview';
 import ImageSelector from '../../components/ImageSelector';
@@ -43,6 +44,8 @@ type AppState =
 // ---------------------------------------------------------------------------
 
 function App() {
+  const { t } = useTranslation();
+
   // --- Auth -----------------------------------------------------------------
   const { isAuthenticated, user, isLoading: authLoading, refetch: refetchAuth } = useAuth();
 
@@ -322,17 +325,17 @@ function App() {
     } catch (err) {
       const errorResponse = err as { status?: number; error?: string; errorCode?: string };
       const status = errorResponse.status ?? 0;
-      let message = errorResponse.error ?? 'Extraction failed. Please try again.';
+      let message = errorResponse.error ?? t('extraction.failed');
 
       if (status === 400) {
-        message = 'Could not extract product data from this page. Try a different product page.';
+        message = t('extraction.noData');
       } else if (status === 401) {
-        message = 'Your session expired. Please log in again to continue.';
+        message = t('auth.sessionExpired');
         refetchAuth();
       } else if (status === 403 && errorResponse.errorCode === 'USAGE_LIMIT_EXCEEDED') {
-        message = 'Monthly AI extraction limit reached. Upgrade your plan for more extractions.';
+        message = t('extraction.limitReached');
       } else if (status === 503) {
-        message = 'Could not access the product page. The website may block automated access.';
+        message = t('extraction.blocked');
       }
 
       setErrorMessage(message);
@@ -411,17 +414,17 @@ function App() {
         // ApiError and returned ADD_ROW_RESULT { success: false } rather than
         // throwing, so sendMessage did not reject — handle here.
         const status = response.status;
-        let message = response.error ?? 'Failed to add product to document.';
+        let message = response.error ?? t('error.addFailed');
 
         if (status === 0) {
-          message = 'Connection failed. Please check your network and try again.';
+          message = t('error.network');
         } else if (status === 401) {
-          message = 'Your session expired. Please log in again to continue.';
+          message = t('auth.sessionExpired');
           refetchAuth();
         } else if (status === 400) {
-          message = 'The selected tab no longer exists. Please select the document again to refresh its tabs.';
+          message = t('error.tabGone');
         } else if (status === 404) {
-          message = 'The document could not be found. Please refresh and try again.';
+          message = t('error.docNotFound');
         }
         // For 403 (locked or row limit), use the server's localized message directly.
 
@@ -437,12 +440,12 @@ function App() {
       // this path only fires on unexpected failures (e.g. SW crash, fetch abort).
       const errorResponse = err as { status?: number; error?: string };
       const status = errorResponse.status ?? null;
-      let message = errorResponse.error ?? 'Failed to add product to document.';
+      let message = errorResponse.error ?? t('error.addFailed');
 
       if (status === 0) {
-        message = 'Connection failed. Please check your network and try again.';
+        message = t('error.network');
       } else if (status === 401) {
-        message = 'Your session expired. Please log in again to continue.';
+        message = t('auth.sessionExpired');
         refetchAuth();
       }
 
@@ -598,13 +601,13 @@ function App() {
           {!docsLoading && documents.length === 0 && appState === 'idle' && (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                No estimate documents found.
+                {t('document.noDocuments')}
               </Typography>
               <Button
                 variant="contained"
                 onClick={() => browser.tabs.create({ url: `${RERUM_APP_URL}/documents/new` })}
               >
-                Create Estimate in Rerum
+                {t('document.createInRerum')}
               </Button>
             </Box>
           )}
@@ -615,18 +618,16 @@ function App() {
               {pageData && (
                 <Box sx={{ bgcolor: 'background.paper', borderRadius: 1, p: 1.5 }}>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    Current Page
+                    {t('page.currentPage')}
                   </Typography>
                   <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
-                    {pageData.title || 'Untitled Page'}
+                    {pageData.title || t('page.untitled')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" noWrap>
                     {pageData.url}
                   </Typography>
                 </Box>
               )}
-
-              <NonProductPageHint confidence={confidence} />
 
               <Button
                 variant="contained"
@@ -635,13 +636,10 @@ function App() {
                 onClick={handleExtract}
                 disabled={!pageData?.url || pageDataLoading}
                 sx={{
-                  background: confidence === 'low'
-                    ? undefined
-                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  opacity: confidence === 'low' ? 0.7 : 1,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
               >
-                Extract Product Data
+                {t('action.extract')}
               </Button>
             </>
           )}
@@ -690,7 +688,7 @@ function App() {
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
               >
-                Add to Estimate
+                {t('action.addToEstimate')}
               </Button>
             </>
           )}
@@ -710,7 +708,7 @@ function App() {
                 size="large"
                 disabled
               >
-                Adding...
+                {t('action.adding')}
               </Button>
             </>
           )}
@@ -730,7 +728,7 @@ function App() {
           {appState === 'error' && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Alert severity="error">
-                {errorMessage ?? 'An unexpected error occurred.'}
+                {errorMessage ?? t('error.unexpected')}
               </Alert>
               {errorCode === 'USAGE_LIMIT_EXCEEDED' ? (
                 <>
@@ -741,15 +739,15 @@ function App() {
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     }}
                   >
-                    Upgrade Plan
+                    {t('action.upgradePlan')}
                   </Button>
                   <Button variant="outlined" onClick={handleTryAgain}>
-                    Try Again
+                    {t('action.tryAgain')}
                   </Button>
                 </>
               ) : (
                 <Button variant="outlined" onClick={handleTryAgain}>
-                  Try Again
+                  {t('action.tryAgain')}
                 </Button>
               )}
             </Box>

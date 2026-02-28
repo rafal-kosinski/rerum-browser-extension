@@ -11,6 +11,7 @@ import {
   Link,
 } from '@mui/material';
 import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { RERUM_APP_URL } from '../lib/constants';
 import type {
   EstimateDocumentSummary,
@@ -50,6 +51,7 @@ function DocumentPicker({
   onTabChange,
   disabled,
 }: DocumentPickerProps) {
+  const { t } = useTranslation();
   const selectedDocSummary = documents.find((d) => d.uuid === selectedDocumentUuid) ?? null;
   const isLocked = selectedDocSummary?.isLocked ?? false;
   const tabs = selectedDocument?.documentContent.tabs ?? [];
@@ -57,7 +59,7 @@ function DocumentPicker({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="subtitle2" color="text.secondary">
-        Add To
+        {t('document.addTo')}
       </Typography>
 
       {/* Document Autocomplete */}
@@ -102,33 +104,33 @@ function DocumentPicker({
           );
         }}
         renderInput={(params) => (
-          <TextField {...params} label="Document" placeholder="Search documents..." />
+          <TextField {...params} label={t('document.label')} placeholder={t('document.search')} />
         )}
       />
 
       {/* Locked document warning */}
       {isLocked && (
         <Alert severity="warning" sx={{ py: 0.5, '& .MuiAlert-message': { py: 0 } }}>
-          This document is locked.{' '}
+          {t('document.locked')}
           <Link
             href={`${RERUM_APP_URL}/subscription`}
             target="_blank"
             rel="noopener noreferrer"
             sx={{ color: 'inherit', fontWeight: 600 }}
           >
-            Manage Subscription
+            {t('document.manageSub')}
           </Link>
-          {' '}to edit it.
+          {t('document.lockedSuffix')}
         </Alert>
       )}
 
       {/* Tab Select */}
       <FormControl size="small" fullWidth disabled={!selectedDocumentUuid || tabs.length === 0 || disabled || isLocked}>
-        <InputLabel id="tab-select-label">Tab</InputLabel>
+        <InputLabel id="tab-select-label">{t('document.tab')}</InputLabel>
         <Select
           labelId="tab-select-label"
           value={selectedTabId ?? ''}
-          label="Tab"
+          label={t('document.tab')}
           onChange={(e) => onTabChange(e.target.value || null)}
         >
           {tabs.map((tab) => (

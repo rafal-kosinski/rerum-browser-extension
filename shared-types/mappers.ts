@@ -7,7 +7,7 @@
  *   npm run sync-types
  *
  * Source: rerum-frontend/src/shared/lib/mappers/estimateMapper.ts
- * Synced: 2026-02-24T22:21:21.335Z
+ * Synced: 2026-02-28T00:16:26.381Z
  */
 
 import Decimal from 'decimal.js';

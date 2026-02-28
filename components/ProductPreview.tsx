@@ -11,6 +11,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import type { ExtractedProductData } from '../shared-types/estimate';
 
 interface ProductPreviewProps {
@@ -32,6 +33,7 @@ interface ProductPreviewProps {
  * All fields are controlled and call `onChange` on every edit.
  */
 function ProductPreview({ data, onChange, customFieldLabels, disabled = false }: ProductPreviewProps) {
+  const { t } = useTranslation();
   const [commentOpen, setCommentOpen] = useState(false);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
 
@@ -72,11 +74,11 @@ function ProductPreview({ data, onChange, customFieldLabels, disabled = false }:
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="subtitle2" color="text.secondary">
-        Product Preview
+        {t('product.preview')}
       </Typography>
 
       <TextField
-        label="Product Name"
+        label={t('product.name')}
         value={data.productName ?? ''}
         onChange={(e) => handleFieldChange('productName', e.target.value || null)}
         size="small"
@@ -85,7 +87,7 @@ function ProductPreview({ data, onChange, customFieldLabels, disabled = false }:
       />
 
       <TextField
-        label="Manufacturer"
+        label={t('product.manufacturer')}
         value={data.manufacturer ?? ''}
         onChange={(e) => handleFieldChange('manufacturer', e.target.value || null)}
         size="small"
@@ -94,17 +96,17 @@ function ProductPreview({ data, onChange, customFieldLabels, disabled = false }:
       />
 
       <TextField
-        label="Price per Unit"
+        label={t('product.pricePerUnit')}
         value={data.pricePerUnit ?? ''}
         onChange={(e) => handleFieldChange('pricePerUnit', e.target.value || null)}
         size="small"
         fullWidth
-        placeholder="e.g. 899.99"
+        placeholder={t('product.pricePlaceholder')}
         disabled={disabled}
       />
 
       <TextField
-        label="Quantity"
+        label={t('product.quantity')}
         type="number"
         value={data.quantity ?? 1}
         onChange={(e) => handleQuantityChange(e.target.value)}
@@ -126,7 +128,7 @@ function ProductPreview({ data, onChange, customFieldLabels, disabled = false }:
           onClick={() => setCommentOpen(!commentOpen)}
         >
           <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
-            Comment
+            {t('product.comment')}
           </Typography>
           <IconButton size="small">
             {commentOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -141,7 +143,7 @@ function ProductPreview({ data, onChange, customFieldLabels, disabled = false }:
             multiline
             minRows={2}
             maxRows={4}
-            placeholder="Add a comment..."
+            placeholder={t('product.commentPlaceholder')}
             sx={{ mt: 1 }}
             disabled={disabled}
           />
@@ -163,7 +165,7 @@ function ProductPreview({ data, onChange, customFieldLabels, disabled = false }:
               onClick={() => setCustomFieldsOpen(!customFieldsOpen)}
             >
               <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
-                Custom Fields ({customFieldKeys.length})
+                {t('product.customFields', { count: customFieldKeys.length })}
               </Typography>
               <IconButton size="small">
                 {customFieldsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}

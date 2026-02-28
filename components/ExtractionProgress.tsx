@@ -1,4 +1,5 @@
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Loading state shown while the backend AI extraction is in progress.
@@ -6,6 +7,8 @@ import { Box, CircularProgress, Typography } from '@mui/material';
  * Centered spinner with descriptive text.
  */
 function ExtractionProgress() {
+  const { t } = useTranslation();
+
   return (
     <Box
       sx={{
@@ -19,7 +22,7 @@ function ExtractionProgress() {
     >
       <CircularProgress size={48} />
       <Typography variant="body2" color="text.secondary">
-        AI is analyzing the product...
+        {t('extraction.analyzing')}
       </Typography>
     </Box>
   );
