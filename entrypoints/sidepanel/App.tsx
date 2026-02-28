@@ -700,6 +700,16 @@ function App() {
                 />
               )}
 
+              <DocumentPicker
+                documents={documents}
+                selectedDocumentUuid={selectedDocumentUuid}
+                selectedTabId={selectedTabId}
+                selectedDocument={selectedDocument}
+                onDocumentChange={handleDocumentChange}
+                onTabChange={handleTabChange}
+                disabled={false}
+              />
+
               <Button
                 variant="contained"
                 fullWidth

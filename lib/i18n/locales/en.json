@@ -63,6 +63,7 @@
   "onboarding.gotIt": "Got it!",
   "usage.remaining": "{{remaining}}/{{limit}} AI extractions remaining",
   "column.aiColumns": "AI columns",
+  "column.noAiColumns": "No AI columns configured",
   "column.moreColumns": "+{{count}} more",
   "action.selectDocumentFirst": "Select a document to extract data"
 }

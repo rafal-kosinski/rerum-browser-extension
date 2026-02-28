@@ -20,7 +20,17 @@ function AiColumnChips({ columnDefinitions }: AiColumnChipsProps) {
       .sort((a, b) => a.display_order - b.display_order);
   }, [columnDefinitions]);
 
-  if (aiColumns.length === 0) return null;
+  // No column definitions loaded yet (no document selected)
+  if (!columnDefinitions) return null;
+
+  // Document selected but has no AI-enabled columns
+  if (aiColumns.length === 0) {
+    return (
+      <Typography variant="caption" color="text.secondary">
+        {t('column.noAiColumns')}
+      </Typography>
+    );
+  }
 
   const visible = aiColumns.slice(0, MAX_VISIBLE_CHIPS);
   const remaining = aiColumns.length - visible.length;
