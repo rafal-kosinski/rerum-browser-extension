@@ -65,5 +65,6 @@
   "column.aiColumns": "AI columns",
   "column.noAiColumns": "No AI columns configured",
   "column.moreColumns": "+{{count}} more",
+  "column.showLess": "Show less",
   "action.selectDocumentFirst": "Select a document to extract data"
 }

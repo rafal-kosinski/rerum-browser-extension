@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Box, Chip, Typography } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Box, Chip, Link, Typography } from '@mui/material';
 import { AutoAwesome as AutoAwesomeIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import type { ColumnDefinitionApi } from '../shared-types/estimate';
@@ -12,6 +12,7 @@ const MAX_VISIBLE_CHIPS = 4;
 
 function AiColumnChips({ columnDefinitions }: AiColumnChipsProps) {
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
 
   const aiColumns = useMemo(() => {
     if (!columnDefinitions) return [];
@@ -32,8 +33,9 @@ function AiColumnChips({ columnDefinitions }: AiColumnChipsProps) {
     );
   }
 
-  const visible = aiColumns.slice(0, MAX_VISIBLE_CHIPS);
-  const remaining = aiColumns.length - visible.length;
+  const showAll = expanded || aiColumns.length <= MAX_VISIBLE_CHIPS;
+  const visible = showAll ? aiColumns : aiColumns.slice(0, MAX_VISIBLE_CHIPS);
+  const remaining = aiColumns.length - MAX_VISIBLE_CHIPS;
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
@@ -50,10 +52,29 @@ function AiColumnChips({ columnDefinitions }: AiColumnChipsProps) {
           sx={{ height: 20, fontSize: '0.7rem' }}
         />
       ))}
-      {remaining > 0 && (
-        <Typography variant="caption" color="text.secondary">
+      {!showAll && remaining > 0 && (
+        <Link
+          component="button"
+          variant="caption"
+          color="text.secondary"
+          underline="hover"
+          onClick={() => setExpanded(true)}
+          sx={{ cursor: 'pointer' }}
+        >
           {t('column.moreColumns', { count: remaining })}
-        </Typography>
+        </Link>
+      )}
+      {expanded && aiColumns.length > MAX_VISIBLE_CHIPS && (
+        <Link
+          component="button"
+          variant="caption"
+          color="text.secondary"
+          underline="hover"
+          onClick={() => setExpanded(false)}
+          sx={{ cursor: 'pointer' }}
+        >
+          {t('column.showLess')}
+        </Link>
       )}
     </Box>
   );

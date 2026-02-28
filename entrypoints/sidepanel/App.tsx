@@ -579,17 +579,6 @@ function App() {
   // Custom field labels from document column definitions
   // =========================================================================
 
-  const customFieldLabels = useMemo<Record<string, string> | undefined>(() => {
-    if (!selectedDocument?.documentContent.column_definitions) return undefined;
-    const labels: Record<string, string> = {};
-    for (const col of selectedDocument.documentContent.column_definitions) {
-      if (!col.is_system_column) {
-        labels[col.column_key] = col.display_name;
-      }
-    }
-    return Object.keys(labels).length > 0 ? labels : undefined;
-  }, [selectedDocument]);
-
   const columnDefinitions = useMemo(() => {
     return selectedDocument?.documentContent.column_definitions ?? null;
   }, [selectedDocument]);
@@ -689,7 +678,7 @@ function App() {
               <ProductPreview
                 data={extractedData}
                 onChange={handleDataChange}
-                customFieldLabels={customFieldLabels}
+                columnDefinitions={columnDefinitions}
               />
 
               {pageData && pageData.images.length > 0 && (
@@ -735,7 +724,7 @@ function App() {
               <ProductPreview
                 data={extractedData}
                 onChange={handleDataChange}
-                customFieldLabels={customFieldLabels}
+                columnDefinitions={columnDefinitions}
                 disabled
               />
               <Button
