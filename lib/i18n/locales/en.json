@@ -12,6 +12,7 @@
   "extraction.noData": "Could not extract product data from this page. Try a different product page.",
   "extraction.blocked": "Could not access the product page. The website may block automated access.",
   "extraction.limitReached": "Monthly AI extraction limit reached. Upgrade your plan for more extractions.",
+  "extraction.permissionDenied": "Rerum needs permission to read page content for product extraction. Click \"Try Again\" to grant access.",
   "product.preview": "Product Preview",
   "product.name": "Product Name",
   "product.manufacturer": "Manufacturer",
@@ -66,5 +67,9 @@
   "column.noAiColumns": "No AI columns configured",
   "column.moreColumns": "+{{count}} more",
   "column.showLess": "Show less",
-  "action.selectDocumentFirst": "Select a document to extract data"
+  "action.selectDocumentFirst": "Select a document to extract data",
+  "action.cancel": "Cancel",
+  "permission.description": "Rerum needs access to {{site}} to read product data from this page.",
+  "permission.thisSite": "Allow for {{site}}",
+  "permission.allSites": "Allow for all websites"
 }

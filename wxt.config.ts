@@ -43,6 +43,11 @@ export default defineConfig({
         'cookies',
       ],
       host_permissions: [apiOrigin],
+      // Broad host access is optional — requested at runtime on first Extract.
+      // MV3 uses optional_host_permissions; transformManifest below adds
+      // optional_permissions for MV2 (Firefox) since WXT strips
+      // optional_host_permissions as an mv3-only key.
+      optional_host_permissions: ['*://*/*'],
       action: {
         default_title: 'Open Rerum Estimator',
       },
@@ -57,6 +62,15 @@ export default defineConfig({
         },
       },
     };
+  },
+
+  // For MV2 builds (Firefox), WXT strips optional_host_permissions. Add the
+  // host pattern to optional_permissions instead so permissions.request() works.
+  transformManifest(manifest) {
+    if (manifest.manifest_version === 2 && !manifest.optional_permissions?.includes('*://*/*')) {
+      manifest.optional_permissions = manifest.optional_permissions ?? [];
+      manifest.optional_permissions.push('*://*/*');
+    }
   },
 
   runner: {

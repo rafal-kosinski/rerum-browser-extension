@@ -125,25 +125,34 @@ function Header({ email }: HeaderProps) {
           onClose={handleMenuClose}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          slotProps={{
+            paper: {
+              sx: {
+                maxHeight: 'calc(100vh - 64px)',
+                minWidth: 180,
+              },
+            },
+          }}
         >
-          <MenuItem onClick={handleAccountSettings}>
-            <ListItemIcon>
+          <MenuItem dense onClick={handleAccountSettings}>
+            <ListItemIcon sx={{ minWidth: 32 }}>
               <AccountIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>{t('header.accountSettings')}</ListItemText>
           </MenuItem>
 
-          <Divider />
+          <Divider sx={{ my: 0.5 }} />
 
-          <ListSubheader sx={{ display: 'flex', alignItems: 'center', gap: 1, lineHeight: '36px' }}>
-            <LanguageIcon fontSize="small" />
+          <ListSubheader sx={{ display: 'flex', alignItems: 'center', gap: 0.5, lineHeight: '28px', minHeight: 0 }}>
+            <LanguageIcon sx={{ fontSize: 16 }} />
             {t('header.language')}
           </ListSubheader>
           {LANGUAGES.map((lang) => (
             <MenuItem
+              dense
               key={lang.code}
               onClick={() => handleLanguageChange(lang.code)}
-              sx={{ pl: 4 }}
+              sx={{ pl: 3.5 }}
             >
               <Radio
                 size="small"
@@ -155,10 +164,10 @@ function Header({ email }: HeaderProps) {
             </MenuItem>
           ))}
 
-          <Divider />
+          <Divider sx={{ my: 0.5 }} />
 
-          <MenuItem onClick={handleLogout}>
-            <ListItemIcon>
+          <MenuItem dense onClick={handleLogout}>
+            <ListItemIcon sx={{ minWidth: 32 }}>
               <LogoutIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>{t('header.logout')}</ListItemText>

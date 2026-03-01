@@ -12,6 +12,7 @@
   "extraction.noData": "Nie udało się wyodrębnić danych produktu z tej strony. Spróbuj inną stronę produktu.",
   "extraction.blocked": "Nie udało się uzyskać dostępu do strony produktu. Strona może blokować automatyczny dostęp.",
   "extraction.limitReached": "Osiągnięto miesięczny limit ekstrakcji AI. Ulepsz plan, aby uzyskać więcej ekstrakcji.",
+  "extraction.permissionDenied": "Rerum potrzebuje uprawnień do odczytania zawartości strony w celu ekstrakcji produktu. Kliknij \"Spróbuj ponownie\", aby przyznać dostęp.",
   "product.preview": "Podgląd produktu",
   "product.name": "Nazwa produktu",
   "product.manufacturer": "Producent",
@@ -66,5 +67,9 @@
   "column.noAiColumns": "Brak skonfigurowanych kolumn AI",
   "column.moreColumns": "+{{count}} więcej",
   "column.showLess": "Pokaż mniej",
-  "action.selectDocumentFirst": "Wybierz dokument, aby wyodrębnić dane"
+  "action.selectDocumentFirst": "Wybierz dokument, aby wyodrębnić dane",
+  "action.cancel": "Anuluj",
+  "permission.description": "Rerum potrzebuje dostępu do {{site}}, aby odczytać dane produktu z tej strony.",
+  "permission.thisSite": "Zezwól dla {{site}}",
+  "permission.allSites": "Zezwól dla wszystkich stron"
 }

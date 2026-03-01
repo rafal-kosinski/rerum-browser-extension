@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Box, Button, Typography, Alert } from '@mui/material';
+import { Box, Button, Typography, Alert, Skeleton } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { browser } from 'wxt/browser';
 import { useAuth } from '../../hooks/useAuth';
 import { useDocuments } from '../../hooks/useDocuments';
 import { sendMessage } from '../../lib/messaging';
 import { RERUM_APP_URL } from '../../lib/constants';
+import { hasHostPermissionFor, requestHostPermissionFor, requestHostPermissionForAll } from '../../lib/permissions';
 import type {
   PageData,
   ProductConfidence,
@@ -34,6 +35,7 @@ type AppState =
   | 'loading'
   | 'not-authenticated'
   | 'idle'
+  | 'permission-needed'
   | 'extracting'
   | 'preview'
   | 'saving'
@@ -74,6 +76,7 @@ function App() {
 
   // --- Usage ----------------------------------------------------------------
   const [usage, setUsage] = useState<UsageDto | null>(null);
+  const [usageLoaded, setUsageLoaded] = useState(false);
 
   // --- UI state machine -----------------------------------------------------
   const [appState, setAppState] = useState<AppState>('loading');
@@ -81,6 +84,7 @@ function App() {
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [pendingReExtract, setPendingReExtract] = useState(false);
+  const [pendingExtractAfterGrant, setPendingExtractAfterGrant] = useState(false);
 
   // --- Success info ---------------------------------------------------------
   const [successInfo, setSuccessInfo] = useState<{
@@ -121,6 +125,7 @@ function App() {
       setSelectedTabId(null);
       setSelectedDocument(null);
       setUsage(null);
+      setUsageLoaded(false);
       setSuccessInfo(null);
       setErrorMessage(null);
       setErrorStatus(null);
@@ -219,6 +224,9 @@ function App() {
       })
       .catch(() => {
         // Non-critical — silently ignore
+      })
+      .finally(() => {
+        setUsageLoaded(true);
       });
   }, [isAuthenticated]);
 
@@ -229,13 +237,17 @@ function App() {
     if (!isAuthenticated) return;
 
     const handleTabActivated = () => {
-      if (appStateRef.current === 'idle') {
+      const state = appStateRef.current;
+      if (state === 'idle' || state === 'permission-needed') {
+        if (state === 'permission-needed') setAppState('idle');
         void fetchPageData();
       }
     };
 
     const handleTabUpdated = (_tabId: number, changeInfo: { status?: string }) => {
-      if (changeInfo.status === 'complete' && appStateRef.current === 'idle') {
+      const state = appStateRef.current;
+      if (changeInfo.status === 'complete' && (state === 'idle' || state === 'permission-needed')) {
+        if (state === 'permission-needed') setAppState('idle');
         void fetchPageData();
       }
     };
@@ -300,7 +312,8 @@ function App() {
   // Handlers
   // =========================================================================
 
-  const handleExtract = useCallback(async () => {
+  // The actual extraction logic, called after permission is confirmed.
+  const doExtract = useCallback(async () => {
     if (!pageData?.url) return;
 
     setAppState('extracting');
@@ -318,7 +331,6 @@ function App() {
 
       if (response.type === 'EXTRACT_RESULT') {
         setExtractedData(response.data);
-        // Auto-select the first image if available
         if (pageData.images.length > 0) {
           setSelectedImage(response.data.productImageUrl ?? pageData.images[0] ?? null);
         }
@@ -345,7 +357,53 @@ function App() {
       setErrorCode(errorResponse.errorCode ?? null);
       setAppState('error');
     }
-  }, [pageData, activeTabId, selectedDocumentUuid, refetchAuth]);
+  }, [pageData, activeTabId, selectedDocumentUuid, refetchAuth, t]);
+
+  // Check permission and either show the choice UI or proceed to extraction.
+  const handleExtract = useCallback(async () => {
+    if (!pageData?.url) return;
+
+    const hasPermission = await hasHostPermissionFor(pageData.url);
+    if (!hasPermission) {
+      setAppState('permission-needed');
+      return;
+    }
+
+    void doExtract();
+  }, [pageData, doExtract]);
+
+  // Permission choice handlers — each is called from a button click
+  // (user gesture), so browser.permissions.request() works.
+  // After granting, we re-fetch page data (images were missing without
+  // permission) and set a flag so extraction runs once fresh data arrives.
+  const handleGrantThisSite = useCallback(async () => {
+    if (!pageData?.url) return;
+    const granted = await requestHostPermissionFor(pageData.url);
+    if (granted) {
+      setAppState('extracting');
+      setPageDataLoading(true);
+      setPendingExtractAfterGrant(true);
+      void fetchPageData();
+    } else {
+      setErrorMessage(t('extraction.permissionDenied'));
+      setErrorCode('PERMISSION_DENIED');
+      setAppState('error');
+    }
+  }, [pageData, fetchPageData, t]);
+
+  const handleGrantAllSites = useCallback(async () => {
+    const granted = await requestHostPermissionForAll();
+    if (granted) {
+      setAppState('extracting');
+      setPageDataLoading(true);
+      setPendingExtractAfterGrant(true);
+      void fetchPageData();
+    } else {
+      setErrorMessage(t('extraction.permissionDenied'));
+      setErrorCode('PERMISSION_DENIED');
+      setAppState('error');
+    }
+  }, [fetchPageData, t]);
 
   const handleAddToEstimate = useCallback(async () => {
     if (!extractedData || !selectedDocumentUuid || !selectedTabId) return;
@@ -377,7 +435,7 @@ function App() {
 
       if (response.type === 'ADD_ROW_RESULT' && response.success) {
         const docName = documents.find((d) => d.uuid === selectedDocumentUuid)?.documentName ?? 'Document';
-        const tabName = (selectedDocument?.documentContent.tabs ?? []).find((t) => t.tab_id === selectedTabId)?.tab_name ?? 'Tab';
+        const tabName = (selectedDocument?.documentContent.tabs ?? []).find((tab) => tab.tab_id === selectedTabId)?.tab_name ?? 'Tab';
 
         setSuccessInfo({
           documentName: docName,
@@ -386,15 +444,6 @@ function App() {
           documentUuid: selectedDocumentUuid,
         });
         setAppState('success');
-
-        // Remember last used document/tab
-        // I2 FIX: Use browser.storage instead of chrome.storage
-        if (browser?.storage?.local) {
-          browser.storage.local.set({
-            lastDocumentUuid: selectedDocumentUuid,
-            lastTabId: selectedTabId,
-          });
-        }
 
         // Refresh usage
         sendMessage({ type: 'FETCH_USAGE' })
@@ -455,7 +504,7 @@ function App() {
       setErrorStatus(status);
       setAppState('error');
     }
-  }, [extractedData, selectedDocumentUuid, selectedTabId, selectedImage, pageData, documents, selectedDocument, refetchAuth]);
+  }, [extractedData, selectedDocumentUuid, selectedTabId, selectedImage, pageData, documents, selectedDocument, refetchAuth, t]);
 
   const handleDataChange = useCallback((data: ExtractedProductData & { quantity?: number; comment?: string }) => {
     setExtractedData(data);
@@ -494,6 +543,17 @@ function App() {
       setSelectedTabId(null);
       setSelectedDocument(null);
 
+      // Persist selection so it survives popup/side panel close (e.g. when the
+      // browser permission prompt steals focus and the popup unmounts).
+      if (browser?.storage?.local) {
+        if (uuid) {
+          browser.storage.local.set({ lastDocumentUuid: uuid });
+          browser.storage.local.remove('lastTabId');
+        } else {
+          browser.storage.local.remove(['lastDocumentUuid', 'lastTabId']);
+        }
+      }
+
       // If we're in preview state and the document changed, we need to
       // re-extract because the new document may have different AI columns.
       const wasInPreview = appStateRef.current === 'preview' && !!uuid;
@@ -529,6 +589,15 @@ function App() {
 
   const handleTabChange = useCallback((tabId: string | null) => {
     setSelectedTabId(tabId);
+
+    // Persist tab selection alongside document selection.
+    if (browser?.storage?.local) {
+      if (tabId) {
+        browser.storage.local.set({ lastTabId: tabId });
+      } else {
+        browser.storage.local.remove('lastTabId');
+      }
+    }
   }, []);
 
   const handleOnboardingComplete = useCallback(() => {
@@ -575,13 +644,26 @@ function App() {
 
   // Re-extract when the user switches documents from preview state.
   // Uses pendingReExtract flag because handleDocumentChange can't call
-  // handleExtract directly (selectedDocumentUuid update is async).
+  // doExtract directly (selectedDocumentUuid update is async).
+  // Calls doExtract instead of handleExtract because permission was already
+  // granted during the initial extraction for this page.
   useEffect(() => {
     if (pendingReExtract && selectedDocumentUuid && selectedDocument && pageData?.url) {
       setPendingReExtract(false);
-      void handleExtract();
+      void doExtract();
     }
-  }, [pendingReExtract, selectedDocumentUuid, selectedDocument, pageData, handleExtract]);
+  }, [pendingReExtract, selectedDocumentUuid, selectedDocument, pageData, doExtract]);
+
+  // Run extraction after permission grant + page data refresh completes.
+  // The grant handlers set pendingExtractAfterGrant=true and call fetchPageData().
+  // Once fetchPageData finishes (pageDataLoading goes false), we run doExtract
+  // with fresh pageData (including images).
+  useEffect(() => {
+    if (pendingExtractAfterGrant && !pageDataLoading && pageData?.url) {
+      setPendingExtractAfterGrant(false);
+      void doExtract();
+    }
+  }, [pendingExtractAfterGrant, pageDataLoading, pageData, doExtract]);
 
   // =========================================================================
   // Custom field labels from document column definitions
@@ -612,10 +694,12 @@ function App() {
             <OnboardingFlow onComplete={handleOnboardingComplete} />
           )}
 
-          {/* Usage banner */}
-          {usage && (
+          {/* Usage banner — reserve height while loading to prevent layout shift */}
+          {usage ? (
             <UsageBanner used={usage.aiAutofillUsed} limit={usage.aiAutofillLimit} />
-          )}
+          ) : !usageLoaded && isAuthenticated && appState !== 'loading' ? (
+            <Skeleton variant="rounded" height={42} />
+          ) : null}
 
           {/* No documents state */}
           {!docsLoading && documents.length === 0 && appState === 'idle' && (
@@ -632,10 +716,20 @@ function App() {
             </Box>
           )}
 
+          {/* Idle state: skeleton while documents are loading */}
+          {appState === 'idle' && docsLoading && documents.length === 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Skeleton variant="rounded" height={66} />
+              <Skeleton variant="rounded" height={40} />
+              <Skeleton variant="rounded" height={40} />
+              <Skeleton variant="rounded" height={42} />
+            </Box>
+          )}
+
           {/* Idle state: page info + document picker + extract button */}
           {appState === 'idle' && documents.length > 0 && (
             <>
-              {pageData && (
+              {pageData ? (
                 <Box sx={{ bgcolor: 'background.paper', borderRadius: 1, p: 1.5 }}>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
                     {t('page.currentPage')}
@@ -647,7 +741,9 @@ function App() {
                     {pageData.url}
                   </Typography>
                 </Box>
-              )}
+              ) : pageDataLoading ? (
+                <Skeleton variant="rounded" height={66} />
+              ) : null}
 
               <DocumentPicker
                 documents={documents}
@@ -676,6 +772,43 @@ function App() {
               </Button>
             </>
           )}
+
+          {/* Permission needed state */}
+          {appState === 'permission-needed' && pageData && (() => {
+            let site: string;
+            try { site = new URL(pageData.url).hostname; } catch { site = pageData.url; }
+            return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Alert severity="info">
+                {t('permission.description', { site })}
+              </Alert>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={handleGrantThisSite}
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                }}
+              >
+                {t('permission.thisSite', { site })}
+              </Button>
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={handleGrantAllSites}
+              >
+                {t('permission.allSites')}
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setAppState('idle')}
+              >
+                {t('action.cancel')}
+              </Button>
+            </Box>
+            );
+          })()}
 
           {/* Extracting state */}
           {appState === 'extracting' && <ExtractionProgress />}
@@ -722,6 +855,13 @@ function App() {
                 }}
               >
                 {t('action.addToEstimate')}
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleAddAnother}
+              >
+                {t('action.cancel')}
               </Button>
             </>
           )}

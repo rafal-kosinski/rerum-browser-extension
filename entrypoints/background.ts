@@ -11,6 +11,7 @@ import type { ExtensionMessage, ExtensionResponse } from '../lib/messaging';
 import { extractPageData, extractPageContent } from './content/extraction';
 import { sanitizePageData } from '../lib/sanitize';
 import { cacheDocumentTabs, invalidateDocumentCache } from '../lib/storage';
+import { hasHostPermissionFor } from '../lib/permissions';
 
 // ---------------------------------------------------------------------------
 // ApiError
@@ -407,8 +408,8 @@ function isValidProductUrl(url: string): boolean {
     // Reject private IPv4 ranges (10.x, 172.16-31.x, 192.168.x)
     if (/^10\./.test(hostname)) return false;
     if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return false;
-    if (/^192\.168\./.test(hostname)) return false;
-    return true;
+    return !/^192\.168\./.test(hostname);
+
   } catch {
     return false;
   }
@@ -428,9 +429,9 @@ async function handleExtractProduct(
     params.documentUuid = documentUuid;
   }
 
-  // Attempt to capture rendered page content from the tab via the scripting API.
-  // This bypasses server-side scraping and avoids anti-bot 503 errors (Allegro, Amazon, etc.).
-  // Falls back to URL-only (backend scrapes) if injection fails (e.g. chrome:// pages).
+  // Capture rendered page content from the tab via the scripting API.
+  // Content script injection is required — the extension does not fall back
+  // to URL-only server-side scraping because avoiding that is its core purpose.
   const requestBody: Record<string, unknown> = { productUrl };
   if (tabId != null) {
     try {
@@ -443,10 +444,16 @@ async function handleExtractProduct(
         requestBody.pageText = content.pageText;
         requestBody.images = content.images ?? [];
         console.log('[rerum-ext] Page content captured for extraction:', content.pageText.length, 'chars,', (content.images ?? []).length, 'images');
+      } else {
+        throw new ApiError(0, 'Could not read page content. Try refreshing the page.');
       }
     } catch (err) {
-      console.warn('[rerum-ext] Content capture failed, falling back to URL-only scraping:', err);
+      if (err instanceof ApiError) throw err;
+      console.warn('[rerum-ext] Content script injection failed:', err);
+      throw new ApiError(0, 'Could not access the page. Make sure you have granted the required permission.');
     }
+  } else {
+    throw new ApiError(0, 'No active tab to extract from.');
   }
 
   const extraction = await apiPost<Record<string, unknown>>(
@@ -563,10 +570,8 @@ export default defineBackground(() => {
   // Open the side panel when the user clicks the extension icon.
   //
   // We use action.onClicked instead of setPanelBehavior({ openPanelOnActionClick: true })
-  // because the latter consumes the click event at the browser level before the
-  // extension listener fires — preventing the 'activeTab' permission from being
-  // granted. With action.onClicked the permission IS granted, which lets us call
-  // browser.scripting.executeScript() on the current tab during extraction.
+  // to retain control over the side panel open behaviour and allow future
+  // extensibility (e.g. context-dependent actions on icon click).
   //
   // Fall back to setPanelBehavior for browsers that support sidePanel but not
   // sidePanel.open (e.g. older Chrome builds / Firefox sidebar).
@@ -718,6 +723,13 @@ export default defineBackground(() => {
         return;
       }
 
+      // Badge injection requires host permission for this specific origin.
+      // Permission is granted per-site when the user first extracts from it.
+      // Skip silently for sites the user hasn't granted access to yet.
+      if (!await hasHostPermissionFor(tab.url)) {
+        return;
+      }
+
       const results = await browser.scripting.executeScript({
         target: { tabId },
         func: extractPageData,
@@ -758,6 +770,30 @@ export default defineBackground(() => {
       });
     }
   });
+
+  // When the user grants a new host permission (via Extract on a site),
+  // update badges for any open tabs on that origin.
+  if (browser.permissions?.onAdded) {
+    browser.permissions.onAdded.addListener((permissions) => {
+      if (!permissions.origins?.length) return;
+      browser.tabs.query({}).then((tabs) => {
+        for (const tab of tabs) {
+          if (tab.id != null && tab.url) {
+            // Check if any granted origin matches this tab
+            try {
+              const tabOrigin = new URL(tab.url).origin;
+              const matches = permissions.origins!.some((o) => o.startsWith(tabOrigin));
+              if (matches) {
+                updateBadgeForTab(tab.id).catch(() => {});
+              }
+            } catch {
+              // Invalid URL — skip
+            }
+          }
+        }
+      }).catch(() => {});
+    });
+  }
 
   // -----------------------------------------------------------------------
   // 4. AUTH STATE MONITORING
